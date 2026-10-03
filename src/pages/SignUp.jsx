@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-
-const SUBJECTS = [
-  'Mathematics', 'English', 'Kiswahili', 'Biology', 'Chemistry', 'Physics',
-  'History', 'Geography', 'CRE', 'IRE', 'Business', 'Agriculture',
-  'Computer Studies', 'Music', 'Art', 'PE',
-];
-
-const FORMS = ['Form 1', 'Form 2', 'Form 3', 'Form 4'];
-const STREAMS = ['East', 'West', 'North', 'South'];
+import { SUBJECTS, FORMS, STREAMS } from '../lib/constants';
 
 export default function SignUp({ onSwitchToLogin }) {
   const [form, setForm] = useState({
@@ -17,7 +9,7 @@ export default function SignUp({ onSwitchToLogin }) {
     password: '',
     confirm: '',
     phone: '',
-    subject: '',
+    subjects: [],
     isClassTeacher: false,
     classForm: '',
     classStream: '',
@@ -29,6 +21,18 @@ export default function SignUp({ onSwitchToLogin }) {
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
+  function toggleSubject(subject) {
+    setForm(prev => {
+      const has = prev.subjects.includes(subject);
+      return {
+        ...prev,
+        subjects: has
+          ? prev.subjects.filter(s => s !== subject)
+          : [...prev.subjects, subject],
+      };
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -37,6 +41,7 @@ export default function SignUp({ onSwitchToLogin }) {
     if (!form.email.trim()) return setError('Email is required.');
     if (form.password.length < 6) return setError('Password must be at least 6 characters.');
     if (form.password !== form.confirm) return setError('Passwords do not match.');
+    if (form.subjects.length === 0) return setError('Select at least one subject.');
     if (form.isClassTeacher && (!form.classForm || !form.classStream)) {
       return setError('Select the form and stream you are class teacher of.');
     }
@@ -64,7 +69,8 @@ export default function SignUp({ onSwitchToLogin }) {
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim() || null,
-      subject: form.subject || null,
+      subject: form.subjects[0] || null,
+      subjects: form.subjects,
       is_class_teacher: form.isClassTeacher,
       class_form: form.isClassTeacher ? form.classForm : null,
       class_stream: form.isClassTeacher ? form.classStream : null,
@@ -94,7 +100,7 @@ export default function SignUp({ onSwitchToLogin }) {
           opacity: 0.12,
         }}
       />
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-lg">
         <div className="flex flex-col items-center mb-6">
           <img src="/ribeboys-logo.webp" alt="Ribe Boys" className="w-16 h-16 object-contain mb-3" />
           <h1 className="text-xl font-bold text-white tracking-wide">SMART MWALIMU</h1>
@@ -154,16 +160,32 @@ export default function SignUp({ onSwitchToLogin }) {
               </Field>
             </div>
 
-            <Field label="Main subject">
-              <select
-                value={form.subject}
-                onChange={e => update('subject', e.target.value)}
-                className="w-full bg-[#0a1628] border border-blue-900/60 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="">Select subject</option>
-                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
+            <div>
+              <label className="block text-xs text-blue-300 mb-2">
+                Subjects you teach ({form.subjects.length} selected)
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto bg-[#0a1628] border border-blue-900/60 rounded-md p-2">
+                {SUBJECTS.map(s => {
+                  const checked = form.subjects.includes(s);
+                  return (
+                    <label
+                      key={s}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition ${
+                        checked ? 'bg-blue-600/30 text-white' : 'text-blue-300 hover:bg-blue-900/30'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSubject(s)}
+                        className="w-3.5 h-3.5 accent-blue-600"
+                      />
+                      <span className="truncate">{s}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
 
             <label className="flex items-center gap-2 cursor-pointer">
               <input

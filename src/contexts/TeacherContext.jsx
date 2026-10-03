@@ -23,10 +23,7 @@ export function TeacherProvider({ children }) {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Teacher fetch error:', error);
-      }
-
+      if (error) console.error('Teacher fetch error:', error);
       setTeacher(data || null);
       setLoading(false);
     }
@@ -35,9 +32,12 @@ export function TeacherProvider({ children }) {
   }, [user]);
 
   const isClassTeacher = teacher?.is_class_teacher === true;
+  const subjects = teacher?.subjects?.length
+    ? teacher.subjects
+    : (teacher?.subject ? [teacher.subject] : []);
 
   return (
-    <TeacherContext.Provider value={{ teacher, isClassTeacher, loading }}>
+    <TeacherContext.Provider value={{ teacher, isClassTeacher, subjects, loading }}>
       {children}
     </TeacherContext.Provider>
   );

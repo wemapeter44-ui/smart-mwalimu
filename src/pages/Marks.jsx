@@ -14,6 +14,11 @@ export default function Marks() {
   const { confirm } = useConfirm();
   const { loadMarks, saveMarks, buildSummary, loading } = useMarks();
 
+  const mySubjects = teacher?.subjects?.length
+    ? teacher.subjects
+    : (teacher?.subject ? [teacher.subject] : []);
+
+  const [subject, setSubject] = useState('');
   const [form, setForm] = useState('');
   const [stream, setStream] = useState('');
   const [exam, setExam] = useState('');
@@ -23,7 +28,6 @@ export default function Marks() {
   const [loadedKey, setLoadedKey] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const subject = teacher?.subject || '';
   const ready = form && exam && term && subject;
 
   const key = useMemo(
@@ -93,13 +97,13 @@ export default function Marks() {
     }
   }
 
-  if (!subject) {
+  if (mySubjects.length === 0) {
     return (
       <div className="p-6">
         <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg p-8 text-center">
-          <h2 className="text-sm font-semibold text-white">No subject on your profile</h2>
+          <h2 className="text-sm font-semibold text-white">No subjects on your profile</h2>
           <p className="text-xs text-blue-400 mt-2">
-            Contact admin to set your subject before entering marks.
+            Contact admin to set your subjects before entering marks.
           </p>
         </div>
       </div>
@@ -109,13 +113,20 @@ export default function Marks() {
   return (
     <div className="p-6 max-w-4xl">
       <div className="mb-5">
-        <h1 className="text-lg font-bold text-white">Marks — {subject}</h1>
-        <p className="text-xs text-blue-400 mt-1">Enter scores per exam and print for the senior master.</p>
+        <h1 className="text-lg font-bold text-white">Marks</h1>
+        <p className="text-xs text-blue-400 mt-1">
+          Enter scores per exam and print for the senior master.
+        </p>
       </div>
 
-      {/* Setup form */}
       <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg p-4 mb-5 print:hidden">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Field label="Subject">
+            <select value={subject} onChange={e => setSubject(e.target.value)} className="w-full bg-[#0a1628] border border-blue-900/60 rounded-md px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">—</option>
+              {mySubjects.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
           <Field label="Form">
             <select value={form} onChange={e => setForm(e.target.value)} className="w-full bg-[#0a1628] border border-blue-900/60 rounded-md px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
               <option value="">—</option>
