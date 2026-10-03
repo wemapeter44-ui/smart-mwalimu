@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@keyframes slide-in {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-slide-in {
+  animation: slide-in 0.2s ease-out;
+}
+
+html, body, #root {
+  min-height: 100%;
+  background-color: #0a1628;
+  color: #ffffff;
+}
+
+input, select, textarea {
+  color-scheme: dark;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #0a1628 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  aside,
+  header {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  .print\:hidden { display: none !important; }
+  .print\:block { display: block !important; }
+  #register-print { display: block !important; }
+}
