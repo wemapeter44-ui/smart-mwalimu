@@ -27,6 +27,7 @@ function App() {
   const { user, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
   const [authView, setAuthView] = useState('login');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -58,20 +59,27 @@ function App() {
   return (
     <NotificationProvider>
       <div className="min-h-screen bg-[#0a1628] flex">
-        <Sidebar activePage={activePage} onNavigate={setActivePage} />
+        <Sidebar
+          activePage={activePage}
+          onNavigate={setActivePage}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
         <main className="flex-1 overflow-x-hidden relative min-w-0">
           <div
-            className="fixed inset-0 pointer-events-none"
+            className="fixed inset-0 pointer-events-none lg:ml-64"
             style={{
               backgroundImage: 'url(/ribeboys-bg.jpg)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              marginLeft: '16rem',
               opacity: 0.08,
             }}
           />
           <div className="relative z-10">
-            <TopBar title={TITLES[activePage] || 'Smart Mwalimu'} />
+            <TopBar
+              title={TITLES[activePage] || 'Smart Mwalimu'}
+              onMenuClick={() => setSidebarOpen(o => !o)}
+            />
             {renderPage()}
           </div>
         </main>

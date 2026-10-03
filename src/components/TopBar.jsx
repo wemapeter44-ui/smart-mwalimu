@@ -11,7 +11,7 @@ function timeAgo(iso) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function TopBar({ title }) {
+export default function TopBar({ title, onMenuClick }) {
   const { user } = useAuth();
   const { teacher } = useTeacher();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -27,10 +27,21 @@ export default function TopBar({ title }) {
   }, []);
 
   return (
-    <header className="h-14 bg-[#0d1e35]/80 backdrop-blur border-b border-blue-900/40 flex items-center justify-between px-4 sticky top-0 z-30">
-      <h2 className="text-sm font-semibold text-white">{title}</h2>
+    <header className="h-14 bg-[#0d1e35] border-b border-blue-900/40 flex items-center justify-between gap-3 px-4 sticky top-0 z-30">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-1.5 rounded-md hover:bg-blue-900/40 text-blue-200 flex-shrink-0"
+          aria-label="Open menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <h2 className="text-sm font-semibold text-white truncate">{title}</h2>
+      </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
         <div className="relative" ref={ref}>
           <button
             onClick={() => setOpen(o => !o)}
@@ -48,7 +59,7 @@ export default function TopBar({ title }) {
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-80 bg-[#0d1e35] border border-blue-900/40 rounded-lg shadow-xl overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-[#0d1e35] border border-blue-900/40 rounded-lg shadow-xl overflow-hidden z-50">
               <div className="flex items-center justify-between px-3 py-2 border-b border-blue-900/40">
                 <span className="text-xs font-semibold text-white">Notifications</span>
                 {unreadCount > 0 && (
@@ -88,13 +99,13 @@ export default function TopBar({ title }) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 pl-4 border-l border-blue-900/40">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+        <div className="flex items-center gap-2 pl-3 sm:pl-4 border-l border-blue-900/40">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {(teacher?.name || user?.email || '?')[0].toUpperCase()}
           </div>
-          <div className="hidden sm:block">
-            <p className="text-xs font-semibold text-white leading-tight">{teacher?.name || 'Teacher'}</p>
-            <p className="text-[10px] text-blue-400 leading-tight">{teacher?.subject || user?.email}</p>
+          <div className="hidden sm:block min-w-0">
+            <p className="text-xs font-semibold text-white leading-tight truncate">{teacher?.name || 'Teacher'}</p>
+            <p className="text-[10px] text-blue-400 leading-tight truncate">{teacher?.subject || user?.email}</p>
           </div>
         </div>
       </div>

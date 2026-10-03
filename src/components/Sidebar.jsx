@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useTeacher } from '../contexts/TeacherContext';
 
-function Sidebar({ activePage, onNavigate }) {
+function Sidebar({ activePage, onNavigate, open, onClose }) {
   const { signOut } = useAuth();
   const { isClassTeacher } = useTeacher();
 
@@ -15,51 +15,80 @@ function Sidebar({ activePage, onNavigate }) {
     { id: 'resources', label: 'Resources', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
   ];
 
+  function handleNavigate(id) {
+    onNavigate(id);
+    if (window.innerWidth < 1024) onClose();
+  }
+
   return (
-    <aside className="w-64 bg-[#0d1e35] border-r border-blue-900/40 min-h-screen flex flex-col">
-      <div className="p-5 border-b border-blue-900/40 flex items-center gap-3">
-        <img src="/ribeboys-logo.webp" alt="Ribe Boys" className="w-10 h-10 object-contain" />
-        <div>
-          <h1 className="text-sm font-bold text-white leading-tight">SMART MWALIMU</h1>
-          <p className="text-[10px] text-blue-400 mt-0.5">Ribe Boys High School</p>
-        </div>
-      </div>
+    <>
+      {open && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+        />
+      )}
 
-      <nav className="flex-1 p-3 space-y-1">
-        {links.map(link => (
+      <aside
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50 lg:z-0
+          w-64 bg-[#0d1e35] border-r border-blue-900/40
+          flex flex-col flex-shrink-0
+          transition-transform duration-200 ease-out
+          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        <div className="p-5 border-b border-blue-900/40 flex items-center gap-3 flex-shrink-0">
+          <img src="/ribeboys-logo.webp" alt="Ribe Boys" className="w-10 h-10 object-contain" />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm font-bold text-white leading-tight truncate">SMART MWALIMU</h1>
+            <p className="text-[10px] text-blue-400 mt-0.5 truncate">Ribe Boys High School</p>
+          </div>
           <button
-            key={link.id}
-            onClick={() => onNavigate(link.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition ${
-              activePage === link.id
-                ? 'bg-blue-600 text-white'
-                : 'text-blue-300 hover:bg-blue-900/40 hover:text-white'
-            }`}
+            onClick={onClose}
+            className="lg:hidden text-blue-400 hover:text-white text-xl leading-none flex-shrink-0"
+            aria-label="Close menu"
           >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d={link.icon} />
-            </svg>
-            <span className="truncate">{link.label}</span>
+            ×
           </button>
-        ))}
-      </nav>
+        </div>
 
-      <div className="p-3 border-t border-blue-900/40">
-        <button
-          onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-red-400 hover:bg-red-500/10 transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Sign out
-        </button>
-      </div>
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {links.map(link => (
+            <button
+              key={link.id}
+              onClick={() => handleNavigate(link.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition ${
+                activePage === link.id
+                  ? 'bg-blue-600 text-white'
+                  : 'text-blue-300 hover:bg-blue-900/40 hover:text-white'
+              }`}
+            >
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d={link.icon} />
+              </svg>
+              <span className="truncate">{link.label}</span>
+            </button>
+          ))}
+        </nav>
 
-      <div className="px-4 py-2 text-[10px] text-blue-500 text-center border-t border-blue-900/40">
-        © 2026 PDT Softwares
-      </div>
-    </aside>
+        <div className="p-3 border-t border-blue-900/40 flex-shrink-0">
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-red-400 hover:bg-red-500/10 transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+
+        <div className="px-4 py-2 text-[10px] text-blue-500 text-center border-t border-blue-900/40 flex-shrink-0">
+          © 2026 PDT Softwares
+        </div>
+      </aside>
+    </>
   );
 }
 
