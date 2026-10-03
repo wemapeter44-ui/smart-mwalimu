@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { useRealtimeTable } from './useRealtimeTable';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -65,6 +66,9 @@ export function useClassRegister(date = todayISO()) {
   }, [teacher, isClassTeacher, date]);
 
   useEffect(() => { load(); }, [load]);
+
+  useRealtimeTable('students', () => load(), { enabled: !!teacher && isClassTeacher });
+  useRealtimeTable('attendance', () => load(), { enabled: !!teacher && isClassTeacher });
 
   function setStatus(studentId, status) {
     setStatuses(prev => ({ ...prev, [studentId]: status }));

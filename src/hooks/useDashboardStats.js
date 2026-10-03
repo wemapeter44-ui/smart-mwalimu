@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { useRealtimeTable } from './useRealtimeTable';
 import { todayDayNumber, nowMinutes, toMinutes } from '../lib/dates';
 
 export function useDashboardStats() {
@@ -117,11 +118,15 @@ export function useDashboardStats() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Listen for register-saved event from ClassRegister page → refresh dashboard
+  // Realtime refresh kwa kila kitu
+  useRealtimeTable('announcements', () => load(), { enabled: !!teacher });
+  useRealtimeTable('attendance', () => load(), { enabled: !!teacher });
+  useRealtimeTable('marks', () => load(), { enabled: !!teacher });
+  useRealtimeTable('students', () => load(), { enabled: !!teacher });
+  useRealtimeTable('timetable', () => load(), { enabled: !!teacher });
+
   useEffect(() => {
-    function handleSaved() {
-      load();
-    }
+    function handleSaved() { load(); }
     window.addEventListener('register-saved', handleSaved);
     return () => window.removeEventListener('register-saved', handleSaved);
   }, [load]);

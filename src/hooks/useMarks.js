@@ -1,22 +1,21 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { useRealtimeTable } from './useRealtimeTable';
 
 export function useMarks() {
   const { teacher } = useTeacher();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [lastQuery, setLastQuery] = useState(null);
+  const [refreshTick, setRefreshTick] = useState(0);
 
-  /**
-   * Load marks for a specific form + stream + exam + term + subject.
-   * Returns: { students: [...], marks: { student_id: { id, score } } }
-   */
   const loadMarks = useCallback(async ({ form, stream, exam, term, subject }) => {
     if (!form || !exam || !term || !subject) return { students: [], marks: {} };
     setLoading(true);
     setError(null);
+    setLastQuery({ form, stream, exam, term, subject });
 
-    // 1. Students
     let sq = supabase
       .from('students')
       .select('id, name, admission_no')
@@ -37,7 +36,6 @@ export function useMarks() {
       return { students: [], marks: {} };
     }
 
-    // 2. Existing marks for these students + subject + exam + term
     const ids = students.map(s => s.id);
     const { data: markRows, error: mErr } = await supabase
       .from('marks')
@@ -60,19 +58,13 @@ export function useMarks() {
     return { students, marks: map };
   }, []);
 
-  /**
-   * Upsert marks. rows = [{ student_id, score }] — all for the same
-   * subject/exam/term (from teacher + form fields).
-   */
   async function saveMarks({ form, stream, exam, term, subject, rows }) {
     if (!teacher) throw new Error('No teacher profile.');
-    if (!subject) throw new Error('No subject on your profile.');
+    if (!subject) throw new Error('No subject selected.');
 
     const today = new Date().toISOString().slice(0, 10);
-
-    // Delete existing rows for this combo (safe overwrite) then insert fresh.
-    // Only touches rows matching this subject+exam+term for these students.
     const ids = rows.map(r => r.student_id);
+
     const { error: delErr } = await supabase
       .from('marks')
       .delete()
@@ -97,9 +89,6 @@ export function useMarks() {
     return true;
   }
 
-  /**
-   * Summary stats from a marks map + students list.
-   */
   function buildSummary(students, marks) {
     const scores = students
       .map(s => marks[s.id]?.score)
@@ -121,5 +110,12 @@ export function useMarks() {
     return { total, entered, average, highest, lowest, needAttention };
   }
 
-  return { loadMarks, saveMarks, buildSummary, loading, error };
+  // Realtime: refetch current query
+  useRealtimeTable('marks', async () => {
+    if (lastQuery) {
+      setRefreshTick(t => t + 1);
+    }
+  });
+
+  return { loadMarks, saveMarks, buildSummary, loading, error, refreshTick };
 }

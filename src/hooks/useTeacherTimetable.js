@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { useRealtimeTable } from './useRealtimeTable';
 
 export function useTeacherTimetable() {
   const { teacher } = useTeacher();
@@ -34,6 +35,8 @@ export function useTeacherTimetable() {
 
   useEffect(() => { load(); }, [load]);
 
+  useRealtimeTable('timetable', () => load(), { enabled: !!teacher });
+
   async function addClass(payload) {
     if (!teacher) throw new Error('No teacher profile.');
     const { error } = await supabase.from('timetable').insert({
@@ -46,7 +49,6 @@ export function useTeacherTimetable() {
       stream: payload.stream || null,
     });
     if (error) throw error;
-    await load();
   }
 
   async function updateClass(id, payload) {
@@ -62,13 +64,11 @@ export function useTeacherTimetable() {
       })
       .eq('id', id);
     if (error) throw error;
-    await load();
   }
 
   async function deleteClass(id) {
     const { error } = await supabase.from('timetable').delete().eq('id', id);
     if (error) throw error;
-    await load();
   }
 
   return {

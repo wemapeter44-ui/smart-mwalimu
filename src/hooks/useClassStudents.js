@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { useRealtimeTable } from './useRealtimeTable';
 
 export function useClassStudents() {
   const { teacher, isClassTeacher } = useTeacher();
@@ -36,6 +37,8 @@ export function useClassStudents() {
 
   useEffect(() => { load(); }, [load]);
 
+  useRealtimeTable('students', () => load(), { enabled: !!teacher && isClassTeacher });
+
   async function addStudent({ name, admission_no }) {
     if (!teacher?.class_form) throw new Error('No class assigned to you.');
     const { error } = await supabase.from('students').insert({
@@ -45,52 +48,37 @@ export function useClassStudents() {
       stream: teacher.class_stream || null,
     });
     if (error) throw error;
-    await load();
   }
 
   async function removeStudent(id) {
     const { error } = await supabase.from('students').delete().eq('id', id);
     if (error) throw error;
-    await load();
   }
 
   return { students, loading, error, refresh: load, addStudent, removeStudent };
 }
 
-/* ---------- Stats engine ---------- */
-
 export async function fetchStudentStats(studentId) {
   const [attendanceRes, marksRes] = await Promise.all([
-    supabase
-      .from('attendance')
-      .select('status, date')
-      .eq('student_id', studentId)
-      .order('date', { ascending: false }),
-    supabase
-      .from('marks')
-      .select('subject, score, exam_name, term, date')
-      .eq('student_id', studentId)
-      .order('date', { ascending: true }),
+    supabase.from('attendance').select('status, date').eq('student_id', studentId).order('date', { ascending: false }),
+    supabase.from('marks').select('subject, score, exam_name, term, date').eq('student_id', studentId).order('date', { ascending: true }),
   ]);
 
   const attendance = attendanceRes.data || [];
   const marks = marksRes.data || [];
 
-  /* Attendance */
   const present = attendance.filter(a => a.status === 'present').length;
   const absent = attendance.filter(a => a.status === 'absent').length;
   const late = attendance.filter(a => a.status === 'late').length;
   const totalAtt = attendance.length;
   const attPercent = totalAtt ? Math.round((present / totalAtt) * 100) : null;
 
-  /* Overall average */
   const validMarks = marks.filter(m => typeof m.score === 'number' && !isNaN(m.score));
   const average = validMarks.length
     ? Math.round(validMarks.reduce((a, m) => a + m.score, 0) / validMarks.length)
     : null;
 
-  /* Trend: compare last two chronological scores (by date) */
-  let trend = null; // 'up' | 'down' | 'flat' | null
+  let trend = null;
   let trendDelta = 0;
   if (validMarks.length >= 2) {
     const last = validMarks[validMarks.length - 1].score;
@@ -101,7 +89,6 @@ export async function fetchStudentStats(studentId) {
     else trend = 'flat';
   }
 
-  /* Per-subject breakdown */
   const bySubject = {};
   validMarks.forEach(m => {
     const key = m.subject || 'Unspecified';
@@ -120,10 +107,8 @@ export async function fetchStudentStats(studentId) {
     }))
     .sort((a, b) => b.average - a.average);
 
-  /* Recent marks: last 5 (descending) */
   const recentMarks = [...marks].reverse().slice(0, 5);
 
-  /* Chronological scores for the trend chart (max 12) */
   const trendPoints = validMarks.slice(-12).map(m => ({
     score: m.score,
     label: m.exam_name || '',
