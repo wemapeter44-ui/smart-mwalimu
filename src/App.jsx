@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import Login from './pages/Login';
@@ -23,6 +24,52 @@ const TITLES = {
   resources: 'Resources',
 };
 
+function AppShell({ activePage, setActivePage, sidebarOpen, setSidebarOpen }) {
+  usePushNotifications();
+
+  function renderPage() {
+    switch (activePage) {
+      case 'dashboard': return <Dashboard onNavigate={setActivePage} />;
+      case 'timetable': return <Timetable />;
+      case 'students': return <Students />;
+      case 'class-register': return <ClassRegister />;
+      case 'marks': return <Marks />;
+      case 'announcements': return <Announcements />;
+      case 'resources': return <Resources />;
+      default: return <Dashboard onNavigate={setActivePage} />;
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a1628] flex">
+      <Sidebar
+        activePage={activePage}
+        onNavigate={setActivePage}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <main className="flex-1 overflow-x-hidden relative min-w-0">
+        <div
+          className="fixed inset-0 pointer-events-none lg:ml-64"
+          style={{
+            backgroundImage: 'url(/ribeboys-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.08,
+          }}
+        />
+        <div className="relative z-10">
+          <TopBar
+            title={TITLES[activePage] || 'Smart Mwalimu'}
+            onMenuClick={() => setSidebarOpen(o => !o)}
+          />
+          {renderPage()}
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function App() {
   const { user, loading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
@@ -43,47 +90,14 @@ function App() {
       : <SignUp onSwitchToLogin={() => setAuthView('login')} />;
   }
 
-  function renderPage() {
-    switch (activePage) {
-      case 'dashboard': return <Dashboard onNavigate={setActivePage} />;
-      case 'timetable': return <Timetable />;
-      case 'students': return <Students />;
-      case 'class-register': return <ClassRegister />;
-      case 'marks': return <Marks />;
-      case 'announcements': return <Announcements />;
-      case 'resources': return <Resources />;
-      default: return <Dashboard onNavigate={setActivePage} />;
-    }
-  }
-
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-[#0a1628] flex">
-        <Sidebar
-          activePage={activePage}
-          onNavigate={setActivePage}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
-        <main className="flex-1 overflow-x-hidden relative min-w-0">
-          <div
-            className="fixed inset-0 pointer-events-none lg:ml-64"
-            style={{
-              backgroundImage: 'url(/ribeboys-bg.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: 0.08,
-            }}
-          />
-          <div className="relative z-10">
-            <TopBar
-              title={TITLES[activePage] || 'Smart Mwalimu'}
-              onMenuClick={() => setSidebarOpen(o => !o)}
-            />
-            {renderPage()}
-          </div>
-        </main>
-      </div>
+      <AppShell
+        activePage={activePage}
+        setActivePage={setActivePage}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
     </NotificationProvider>
   );
 }
