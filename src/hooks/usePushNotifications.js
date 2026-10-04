@@ -15,33 +15,45 @@ function urlBase64ToUint8Array(base64String) {
 
 export function usePushNotifications() {
   const { user } = useAuth();
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState('idle'); // idle | unsupported | denied | subscribed | error
   const [error, setError] = useState(null);
 
-  const register = useCallback(async () => {
+  // Silent check (no prompt) — updates status if already granted
+  useEffect(() => {
     if (!user) return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setStatus('unsupported');
       return;
     }
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      setStatus('subscribed');
+    } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+      setStatus('denied');
+    }
+  }, [user]);
+
+  // Called from a button click — Chrome needs user gesture
+  const enable = useCallback(async () => {
+    if (!user) return false;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setStatus('unsupported');
+      return false;
+    }
     if (!VAPID_PUBLIC_KEY) {
       setError('VAPID public key missing.');
       setStatus('error');
-      return;
+      return false;
     }
 
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
-
-      let perm = Notification.permission;
-      if (perm === 'default') {
-        perm = await Notification.requestPermission();
-      }
+      const perm = await Notification.requestPermission();
       if (perm !== 'granted') {
         setStatus('denied');
-        return;
+        return false;
       }
+
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
 
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
@@ -66,16 +78,14 @@ export function usePushNotifications() {
       if (upsertErr) throw upsertErr;
 
       setStatus('subscribed');
+      return true;
     } catch (e) {
-      console.error('Push registration error:', e);
+      console.error('Push enable error:', e);
       setError(e.message);
       setStatus('error');
+      return false;
     }
   }, [user]);
 
-  useEffect(() => {
-    if (user) register();
-  }, [user, register]);
-
-  return { status, error, register };
+  return { status, error, enable };
 }

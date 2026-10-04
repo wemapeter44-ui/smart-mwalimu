@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeacher } from '../contexts/TeacherContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+import { useToast } from '../contexts/ToastContext';
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -15,6 +17,8 @@ export default function TopBar({ title, onMenuClick }) {
   const { user } = useAuth();
   const { teacher } = useTeacher();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { status: pushStatus, enable: enablePush } = usePushNotifications();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -25,6 +29,14 @@ export default function TopBar({ title, onMenuClick }) {
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
+
+  async function handleEnablePush() {
+    const ok = await enablePush();
+    if (ok) toast.success('Notifications enabled on this device.', 'Enabled');
+    else toast.error('Could not enable notifications. Check browser settings.');
+  }
+
+  const showEnableBtn = pushStatus !== 'subscribed' && pushStatus !== 'unsupported';
 
   return (
     <header className="h-14 bg-[#0d1e35] border-b border-blue-900/40 flex items-center justify-between gap-3 px-4 sticky top-0 z-30">
@@ -41,7 +53,20 @@ export default function TopBar({ title, onMenuClick }) {
         <h2 className="text-sm font-semibold text-white truncate">{title}</h2>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {showEnableBtn && (
+          <button
+            onClick={handleEnablePush}
+            className="hidden sm:flex items-center gap-1.5 text-[11px] text-amber-300 border border-amber-500/40 hover:bg-amber-500/10 rounded-md px-2.5 py-1.5 transition"
+            title="Enable notifications on this device"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0" />
+            </svg>
+            Enable alerts
+          </button>
+        )}
+
         <div className="relative" ref={ref}>
           <button
             onClick={() => setOpen(o => !o)}
