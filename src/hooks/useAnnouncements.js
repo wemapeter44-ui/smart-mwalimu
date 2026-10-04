@@ -64,14 +64,19 @@ export function useAnnouncements() {
 
     if (error) throw error;
 
-    // Fire notifications to all teachers (or dept)
+    // Optimistic add (pinned false → goes below pinned items)
+    setItems(prev => {
+      const pinned = prev.filter(a => a.pinned);
+      const rest = prev.filter(a => !a.pinned);
+      return [...pinned, data, ...rest];
+    });
+
     try {
       await dispatchNotifications({ title, message, audience, audience_subject, excludeUserId: user?.id });
     } catch (e) {
       console.warn('Notification dispatch failed:', e.message);
     }
 
-    setItems(prev => [data, ...prev]);
     return data;
   }
 
@@ -87,7 +92,10 @@ export function useAnnouncements() {
       })
       .eq('id', id);
     if (error) throw error;
-    await load(0, false);
+    setItems(prev => prev.map(a => a.id === id
+      ? { ...a, title: title.trim(), message: message.trim(), audience, audience_subject: audience === 'department' ? audience_subject : null, pinned: !!pinned }
+      : a
+    ));
   }
 
   async function deleteAnnouncement(id) {
@@ -102,7 +110,12 @@ export function useAnnouncements() {
       .update({ pinned: !item.pinned })
       .eq('id', item.id);
     if (error) throw error;
-    await load(0, false);
+    setItems(prev => {
+      const updated = prev.map(a => a.id === item.id ? { ...a, pinned: !a.pinned } : a);
+      const pinned = updated.filter(a => a.pinned);
+      const rest = updated.filter(a => !a.pinned);
+      return [...pinned, ...rest];
+    });
   }
 
   return {

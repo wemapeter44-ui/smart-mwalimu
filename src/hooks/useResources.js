@@ -75,7 +75,10 @@ export function useResources() {
       })
       .eq('id', id);
     if (error) throw error;
-    await load(0, false);
+    setItems(prev => prev.map(r => r.id === id
+      ? { ...r, title: title.trim(), description: description?.trim() || null, link: link.trim(), subject: subject || null }
+      : r
+    ));
   }
 
   async function deleteResource(id) {

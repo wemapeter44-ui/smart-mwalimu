@@ -17,7 +17,6 @@ export function NotificationProvider({ children }) {
       setLoading(false);
       return;
     }
-    setLoading(true);
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -26,7 +25,6 @@ export function NotificationProvider({ children }) {
       .limit(50);
 
     if (error) {
-      // Table might not exist yet — fail silently
       if (error.code !== 'PGRST205') {
         console.warn('Notification fetch skipped:', error.message);
       }
@@ -41,25 +39,12 @@ export function NotificationProvider({ children }) {
     fetchNotifications();
   }, [fetchNotifications]);
 
+  // Poll every 30s (replaces realtime)
   useEffect(() => {
     if (!user) return;
-    let channel;
-    try {
-      channel = supabase
-        .channel('notifications-realtime')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            setNotifications(prev => [payload.new, ...prev]);
-          }
-        )
-        .subscribe();
-    } catch (e) {
-      // ignore — table not ready
-    }
-    return () => { if (channel) supabase.removeChannel(channel); };
-  }, [user]);
+    const id = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(id);
+  }, [user, fetchNotifications]);
 
   async function markAsRead(id) {
     const { error } = await supabase

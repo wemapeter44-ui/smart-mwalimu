@@ -1,20 +1,16 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
-import { useRealtimeTable } from './useRealtimeTable';
 
 export function useMarks() {
   const { teacher } = useTeacher();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastQuery, setLastQuery] = useState(null);
-  const [refreshTick, setRefreshTick] = useState(0);
 
   const loadMarks = useCallback(async ({ form, stream, exam, term, subject }) => {
     if (!form || !exam || !term || !subject) return { students: [], marks: {} };
     setLoading(true);
     setError(null);
-    setLastQuery({ form, stream, exam, term, subject });
 
     let sq = supabase
       .from('students')
@@ -110,12 +106,5 @@ export function useMarks() {
     return { total, entered, average, highest, lowest, needAttention };
   }
 
-  // Realtime: refetch current query
-  useRealtimeTable('marks', async () => {
-    if (lastQuery) {
-      setRefreshTick(t => t + 1);
-    }
-  });
-
-  return { loadMarks, saveMarks, buildSummary, loading, error, refreshTick };
+  return { loadMarks, saveMarks, buildSummary, loading, error };
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
-import { useRealtimeTable } from './useRealtimeTable';
 
 export function useClassStudents() {
   const { teacher, isClassTeacher } = useTeacher();
@@ -37,22 +36,26 @@ export function useClassStudents() {
 
   useEffect(() => { load(); }, [load]);
 
-  useRealtimeTable('students', () => load(), { enabled: !!teacher && isClassTeacher });
-
   async function addStudent({ name, admission_no }) {
     if (!teacher?.class_form) throw new Error('No class assigned to you.');
-    const { error } = await supabase.from('students').insert({
-      name: name.trim(),
-      admission_no: admission_no.trim(),
-      form: teacher.class_form,
-      stream: teacher.class_stream || null,
-    });
+    const { data, error } = await supabase
+      .from('students')
+      .insert({
+        name: name.trim(),
+        admission_no: admission_no.trim(),
+        form: teacher.class_form,
+        stream: teacher.class_stream || null,
+      })
+      .select()
+      .single();
     if (error) throw error;
+    setStudents(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
   }
 
   async function removeStudent(id) {
     const { error } = await supabase.from('students').delete().eq('id', id);
     if (error) throw error;
+    setStudents(prev => prev.filter(s => s.id !== id));
   }
 
   return { students, loading, error, refresh: load, addStudent, removeStudent };
