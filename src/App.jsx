@@ -14,6 +14,7 @@ import Announcements from './pages/Announcements';
 import Marks from './pages/Marks';
 import ReportCard from './pages/ReportCard';
 import Resources from './pages/Resources';
+import AiAssistant from './pages/AiAssistant';
 
 const TITLES = {
   dashboard: 'Dashboard',
@@ -22,6 +23,7 @@ const TITLES = {
   'class-register': 'Class Register',
   marks: 'Marks',
   'report-card': 'Report Card',
+  'ai-assistant': 'AI Assistant',
   announcements: 'Announcements',
   resources: 'Resources',
 };
@@ -37,6 +39,7 @@ function AppShell({ activePage, setActivePage, sidebarOpen, setSidebarOpen }) {
       case 'class-register': return <ClassRegister />;
       case 'marks': return <Marks />;
       case 'report-card': return <ReportCard />;
+      case 'ai-assistant': return <AiAssistant />;
       case 'announcements': return <Announcements />;
       case 'resources': return <Resources />;
       default: return <Dashboard onNavigate={setActivePage} />;
