@@ -3,6 +3,7 @@ import { useTeacher } from '../contexts/TeacherContext';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useMarks } from '../hooks/useMarks';
+import { useAiInsights } from '../hooks/useAiInsights';
 import {
   FORMS,
   STREAMS,
@@ -14,12 +15,14 @@ import { generateComment } from '../lib/autoComment';
 import MarksSummary from '../components/marks/MarksSummary';
 import MarksEntryTable from '../components/marks/MarksEntryTable';
 import MarksPrintView from '../components/marks/MarksPrintView';
+import AiInsights from '../components/marks/AiInsights';
 
 export default function Marks() {
   const { teacher, subjects: mySubjects } = useTeacher();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { loadMarks, saveMarks, buildSummary, loading } = useMarks();
+  const { generateInsights, insights, loading: aiLoading, error: aiError, clear: clearInsights } = useAiInsights();
 
   const [subject, setSubject] = useState('');
   const [form, setForm] = useState('');
@@ -43,6 +46,7 @@ export default function Marks() {
 
   async function handleLoad() {
     if (!ready) return;
+    clearInsights();
     const { students: studs, marks } = await loadMarks({
       form, stream, term, subject, assessmentType, strand, subStrand,
     });
@@ -65,7 +69,6 @@ export default function Marks() {
       const current = prev[studentId] || {};
       const next = { ...current, ...patch };
 
-      // Auto-set level from score, and auto-generate comment
       const scoreChanged = patch.score !== undefined;
       const levelChanged = patch.competency_level !== undefined;
 
@@ -78,7 +81,6 @@ export default function Marks() {
         }
       }
 
-      // Auto-generate comment whenever level changes (from either path)
       if (scoreChanged || levelChanged) {
         const newLevel = next.competency_level;
         const commentTouched = patch.teacher_comment !== undefined;
@@ -157,6 +159,20 @@ export default function Marks() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleAiInsights() {
+    const marksMap = {};
+    Object.entries(values).forEach(([id, v]) => {
+      marksMap[id] = {
+        score: v.score === '' ? null : Number(v.score),
+        competency_level: v.competency_level || null,
+      };
+    });
+    await generateInsights({
+      subject, grade: form, stream, term, assessmentType, strand, subStrand,
+      students, marksMap,
+    });
   }
 
   if (mySubjects.length === 0) {
@@ -256,19 +272,38 @@ export default function Marks() {
             subStrand={subStrand}
           />
 
+          <AiInsights
+            insights={insights}
+            loading={aiLoading}
+            error={aiError}
+            onClose={clearInsights}
+          />
+
           <MarksEntryTable
             students={students}
             values={values}
             onChange={updateValue}
           />
 
-          <div className="mt-4 flex items-center justify-between print:hidden">
-            <button
-              onClick={() => window.print()}
-              className="text-xs text-blue-300 hover:text-white px-4 py-2 rounded-md border border-blue-900/60 hover:bg-blue-900/40 transition"
-            >
-              Print mark sheet
-            </button>
+          <div className="mt-4 flex items-center justify-between gap-2 flex-wrap print:hidden">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="text-xs text-blue-300 hover:text-white px-4 py-2 rounded-md border border-blue-900/60 hover:bg-blue-900/40 transition"
+              >
+                Print mark sheet
+              </button>
+              <button
+                onClick={handleAiInsights}
+                disabled={aiLoading}
+                className="text-xs text-blue-300 hover:text-white px-4 py-2 rounded-md border border-blue-900/60 hover:bg-blue-900/40 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5zM4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2" />
+                </svg>
+                {aiLoading ? 'Analyzing…' : 'AI Insights'}
+              </button>
+            </div>
             <button
               onClick={handleSave}
               disabled={saving}
