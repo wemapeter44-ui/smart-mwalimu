@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { usePolling } from './usePolling';
 
 export function useClassStudents() {
   const { teacher, isClassTeacher } = useTeacher();
@@ -35,6 +36,19 @@ export function useClassStudents() {
   }, [teacher, isClassTeacher]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Poll silently every 20s (only refresh list, not toggle loading)
+  usePolling(async () => {
+    if (!teacher || !isClassTeacher || !teacher.class_form) return;
+    let q = supabase
+      .from('students')
+      .select('*')
+      .eq('form', teacher.class_form)
+      .order('name', { ascending: true });
+    if (teacher.class_stream) q = q.eq('stream', teacher.class_stream);
+    const { data } = await q;
+    if (data) setStudents(data);
+  }, 20000, !!teacher && isClassTeacher);
 
   async function addStudent({ name, admission_no }) {
     if (!teacher?.class_form) throw new Error('No class assigned to you.');

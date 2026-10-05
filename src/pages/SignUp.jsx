@@ -1,6 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { SUBJECTS, FORMS, STREAMS } from '../lib/constants';
+import {
+  CORE_SUBJECTS,
+  STEM_ELECTIVES,
+  SOCIAL_SCIENCES_ELECTIVES,
+  ARTS_SPORTS_ELECTIVES,
+  PATHWAYS,
+  FORMS,
+  STREAMS,
+} from '../lib/constants';
+
+const PATHWAY_ELECTIVES = {
+  'STEM': STEM_ELECTIVES,
+  'Social Sciences': SOCIAL_SCIENCES_ELECTIVES,
+  'Arts & Sports Science': ARTS_SPORTS_ELECTIVES,
+};
 
 export default function SignUp({ onSwitchToLogin }) {
   const [form, setForm] = useState({
@@ -9,6 +23,7 @@ export default function SignUp({ onSwitchToLogin }) {
     password: '',
     confirm: '',
     phone: '',
+    pathway: '',
     subjects: [],
     isClassTeacher: false,
     classForm: '',
@@ -16,6 +31,11 @@ export default function SignUp({ onSwitchToLogin }) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const availableSubjects = useMemo(() => {
+    if (!form.pathway) return CORE_SUBJECTS;
+    return [...CORE_SUBJECTS, ...(PATHWAY_ELECTIVES[form.pathway] || [])];
+  }, [form.pathway]);
 
   function update(field, value) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -33,6 +53,14 @@ export default function SignUp({ onSwitchToLogin }) {
     });
   }
 
+  function pickPathway(pathway) {
+    setForm(prev => ({
+      ...prev,
+      pathway,
+      subjects: prev.subjects.filter(s => CORE_SUBJECTS.includes(s)),
+    }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -41,9 +69,10 @@ export default function SignUp({ onSwitchToLogin }) {
     if (!form.email.trim()) return setError('Email is required.');
     if (form.password.length < 6) return setError('Password must be at least 6 characters.');
     if (form.password !== form.confirm) return setError('Passwords do not match.');
+    if (!form.pathway) return setError('Select your pathway.');
     if (form.subjects.length === 0) return setError('Select at least one subject.');
     if (form.isClassTeacher && (!form.classForm || !form.classStream)) {
-      return setError('Select the form and stream you are class teacher of.');
+      return setError('Select the grade and stream you are class teacher of.');
     }
 
     setLoading(true);
@@ -64,17 +93,20 @@ export default function SignUp({ onSwitchToLogin }) {
       return setError('Signup succeeded but no user was returned. Check email confirmation settings.');
     }
 
-    const { error: teacherError } = await supabase.from('teachers').insert({
+    const teacherPayload = {
       user_id: userId,
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim() || null,
+      pathway: form.pathway || null,
       subject: form.subjects[0] || null,
-      subjects: form.subjects,
-      is_class_teacher: form.isClassTeacher,
-      class_form: form.isClassTeacher ? form.classForm : null,
-      class_stream: form.isClassTeacher ? form.classStream : null,
-    });
+      subjects: form.subjects.length ? form.subjects : null,
+      is_class_teacher: !!form.isClassTeacher,
+      class_form: form.isClassTeacher && form.classForm ? form.classForm : null,
+      class_stream: form.isClassTeacher && form.classStream ? form.classStream : null,
+    };
+
+    const { error: teacherError } = await supabase.from('teachers').insert(teacherPayload);
 
     setLoading(false);
 
@@ -162,11 +194,37 @@ export default function SignUp({ onSwitchToLogin }) {
 
             <div>
               <label className="block text-xs text-blue-300 mb-2">
+                Pathway (Senior School)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {PATHWAYS.map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => pickPathway(p)}
+                    className={`text-xs font-semibold py-2 px-3 rounded-md border transition ${
+                      form.pathway === p
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'border-blue-900/60 text-blue-300 hover:bg-blue-900/40'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-blue-300 mb-2">
                 Subjects you teach ({form.subjects.length} selected)
               </label>
+              <p className="text-[10px] text-blue-500 mb-2">
+                Core subjects are always shown. Pick a pathway to unlock electives.
+              </p>
               <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto bg-[#0a1628] border border-blue-900/60 rounded-md p-2">
-                {SUBJECTS.map(s => {
+                {availableSubjects.map(s => {
                   const checked = form.subjects.includes(s);
+                  const isCore = CORE_SUBJECTS.includes(s);
                   return (
                     <label
                       key={s}
@@ -181,6 +239,7 @@ export default function SignUp({ onSwitchToLogin }) {
                         className="w-3.5 h-3.5 accent-blue-600"
                       />
                       <span className="truncate">{s}</span>
+                      {isCore && <span className="text-[8px] text-blue-500 ml-auto">core</span>}
                     </label>
                   );
                 })}
@@ -199,13 +258,13 @@ export default function SignUp({ onSwitchToLogin }) {
 
             {form.isClassTeacher && (
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Form">
+                <Field label="Grade">
                   <select
                     value={form.classForm}
                     onChange={e => update('classForm', e.target.value)}
                     className="w-full bg-[#0a1628] border border-blue-900/60 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                   >
-                    <option value="">Select form</option>
+                    <option value="">Select grade</option>
                     {FORMS.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </Field>

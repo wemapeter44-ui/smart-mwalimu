@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { usePolling } from './usePolling';
 import { todayDayNumber, nowMinutes, toMinutes } from '../lib/dates';
 
 export function useDashboardStats() {
@@ -117,7 +118,9 @@ export function useDashboardStats() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Refresh on register save (from ClassRegister page)
+  // Silent poll every 20s
+  usePolling(() => { load(); }, 20000, !!teacher);
+
   useEffect(() => {
     function handleSaved() { load(); }
     window.addEventListener('register-saved', handleSaved);

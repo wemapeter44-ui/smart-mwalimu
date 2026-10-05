@@ -1,24 +1,46 @@
-export default function MarksSummary({ summary, subject, exam, term }) {
-  const { total, entered, average, highest, lowest, needAttention } = summary;
+import CompetencyBadge from './CompetencyBadge';
+
+const COMPETENCY_KEYS = ['EE', 'ME', 'AE', 'BE'];
+
+export default function MarksSummary({ summary, subject, term, assessmentType, strand, subStrand }) {
+  const { total, entered, levels, average, needAttention } = summary;
 
   return (
     <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg p-4 mb-5">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <p className="text-xs text-blue-400 uppercase tracking-wider font-semibold">
-            {subject} • {exam} • {term}
-          </p>
+        <div className="text-xs text-blue-400 uppercase tracking-wider font-semibold">
+          {subject} • {term}
+          {assessmentType && <span className="ml-2 text-blue-300">({assessmentType})</span>}
         </div>
         <p className="text-[11px] text-blue-500">
           {entered} of {total} entered
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Average" value={average != null ? average : '—'} color="text-blue-300" />
-        <Stat label="Highest" value={highest != null ? highest : '—'} color="text-green-400" />
-        <Stat label="Lowest" value={lowest != null ? lowest : '—'} color="text-amber-400" />
-        <Stat label="Entered" value={`${entered}/${total}`} color="text-white" />
+      {(strand || subStrand) && (
+        <p className="text-[11px] text-blue-400 mb-3">
+          {strand}{strand && subStrand ? ' · ' : ''}{subStrand}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div>
+          <p className="text-xl font-bold text-blue-300">{average != null ? average : '—'}</p>
+          <p className="text-[10px] uppercase tracking-wider text-blue-500">Avg Score</p>
+        </div>
+        {COMPETENCY_KEYS.map(k => (
+          <div key={k}>
+            <p className={`text-xl font-bold ${
+              k === 'EE' ? 'text-green-400' :
+              k === 'ME' ? 'text-blue-400' :
+              k === 'AE' ? 'text-amber-400' :
+              k === 'BE' ? 'text-red-400' : 'text-blue-500'
+            }`}>
+              {levels[k] || 0}
+            </p>
+            <p className="text-[10px] uppercase tracking-wider text-blue-500">{k}</p>
+          </div>
+        ))}
       </div>
 
       {needAttention.length > 0 && (
@@ -30,23 +52,15 @@ export default function MarksSummary({ summary, subject, exam, term }) {
             {needAttention.map(s => (
               <span
                 key={s.id}
-                className="text-[11px] bg-red-500/10 border border-red-500/30 text-red-300 px-2 py-0.5 rounded-full"
+                className="text-[11px] bg-red-500/10 border border-red-500/30 text-red-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1"
               >
-                {s.name} · {s.score}
+                {s.name}
+                <CompetencyBadge level={s.level} size="sm" />
               </span>
             ))}
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value, color }) {
-  return (
-    <div>
-      <p className={`text-xl font-bold ${color}`}>{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-blue-500">{label}</p>
     </div>
   );
 }

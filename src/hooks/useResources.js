@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeacher } from '../contexts/TeacherContext';
+import { usePolling } from './usePolling';
 
 const PAGE_SIZE = 10;
 
@@ -15,7 +16,7 @@ export function useResources() {
   const [hasMore, setHasMore] = useState(true);
 
   const load = useCallback(async (pageNum = 0, append = false) => {
-    setLoading(true);
+    if (!append) setLoading(true);
     setError(null);
     const from = pageNum * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -38,6 +39,8 @@ export function useResources() {
   }, []);
 
   useEffect(() => { load(0, false); setPage(0); }, [load]);
+
+  usePolling(() => load(0, false), 15000);
 
   function loadMore() {
     const next = page + 1;

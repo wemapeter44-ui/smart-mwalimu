@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeacher } from '../contexts/TeacherContext';
+import { usePolling } from './usePolling';
 
 const PAGE_SIZE = 10;
 
@@ -15,7 +16,7 @@ export function useAnnouncements() {
   const [hasMore, setHasMore] = useState(true);
 
   const load = useCallback(async (pageNum = 0, append = false) => {
-    setLoading(true);
+    if (!append) setLoading(true);
     setError(null);
     const from = pageNum * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -39,6 +40,9 @@ export function useAnnouncements() {
   }, []);
 
   useEffect(() => { load(0, false); setPage(0); }, [load]);
+
+  // Poll every 15s — silent refresh of page 0
+  usePolling(() => load(0, false), 15000);
 
   function loadMore() {
     const next = page + 1;
@@ -64,7 +68,6 @@ export function useAnnouncements() {
 
     if (error) throw error;
 
-    // Optimistic add (pinned false → goes below pinned items)
     setItems(prev => {
       const pinned = prev.filter(a => a.pinned);
       const rest = prev.filter(a => !a.pinned);
@@ -130,7 +133,7 @@ export function useAnnouncements() {
 }
 
 async function dispatchNotifications({ title, message, audience, audience_subject, excludeUserId }) {
-  let q = supabase.from('teachers').select('user_id, subject');
+  let q = supabase.from('teachers').select('user_id, subject, subjects');
   if (audience === 'department' && audience_subject) {
     q = q.eq('subject', audience_subject);
   }

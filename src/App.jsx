@@ -12,6 +12,7 @@ import ClassRegister from './pages/ClassRegister';
 import Timetable from './pages/Timetable';
 import Announcements from './pages/Announcements';
 import Marks from './pages/Marks';
+import ReportCard from './pages/ReportCard';
 import Resources from './pages/Resources';
 
 const TITLES = {
@@ -20,6 +21,7 @@ const TITLES = {
   students: 'Students',
   'class-register': 'Class Register',
   marks: 'Marks',
+  'report-card': 'Report Card',
   announcements: 'Announcements',
   resources: 'Resources',
 };
@@ -34,6 +36,7 @@ function AppShell({ activePage, setActivePage, sidebarOpen, setSidebarOpen }) {
       case 'students': return <Students />;
       case 'class-register': return <ClassRegister />;
       case 'marks': return <Marks />;
+      case 'report-card': return <ReportCard />;
       case 'announcements': return <Announcements />;
       case 'resources': return <Resources />;
       default: return <Dashboard onNavigate={setActivePage} />;

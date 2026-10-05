@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
+import { usePolling } from './usePolling';
 
 export function useTeacherTimetable() {
   const { teacher } = useTeacher();
@@ -33,6 +34,18 @@ export function useTeacherTimetable() {
   }, [teacher]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Silent poll every 30s
+  usePolling(async () => {
+    if (!teacher) return;
+    const { data } = await supabase
+      .from('timetable')
+      .select('*')
+      .eq('teacher_id', teacher.id)
+      .order('day', { ascending: true })
+      .order('start_time', { ascending: true });
+    if (data) setClasses(data);
+  }, 30000, !!teacher);
 
   function sortClasses(list) {
     return [...list].sort((a, b) =>
