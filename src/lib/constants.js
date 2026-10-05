@@ -57,7 +57,7 @@ export const ALL_SUBJECTS = [
   ...ARTS_SPORTS_ELECTIVES,
 ];
 
-/* Legacy compatibility — pages zinazotumia SUBJECTS/SUBJECTS_FORMS */
+/* Legacy compatibility */
 export const SUBJECTS = ALL_SUBJECTS;
 export const FORMS = ['Grade 10', 'Grade 11', 'Grade 12'];
 export const STREAMS = ['East', 'West', 'North', 'South'];

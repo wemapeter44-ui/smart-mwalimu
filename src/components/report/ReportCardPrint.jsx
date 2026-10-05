@@ -7,7 +7,7 @@ const LEVEL_LABEL = {
   BE: 'Below Expectation',
 };
 
-export default function ReportCardPrint({ report, teacher }) {
+export default function ReportCardPrint({ report, teacher, aiComment }) {
   if (!report) return null;
   const { student, subjects, levelCounts, overallAverage, overallLevel, term } = report;
 
@@ -94,6 +94,13 @@ export default function ReportCardPrint({ report, teacher }) {
           </tr>
         </tbody>
       </table>
+
+      {aiComment && (
+        <div className="border border-black px-2 py-2 mb-3">
+          <p className="text-[10px] font-semibold uppercase mb-1">Overall Teacher Comment</p>
+          <p className="text-xs leading-relaxed">{aiComment}</p>
+        </div>
+      )}
 
       <p className="text-[10px] mt-1">
         Legend: EE — {LEVEL_LABEL.EE} • ME — {LEVEL_LABEL.ME} • AE — {LEVEL_LABEL.AE} • BE — {LEVEL_LABEL.BE}

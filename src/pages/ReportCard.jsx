@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useTeacher } from '../contexts/TeacherContext';
 import { useToast } from '../contexts/ToastContext';
 import { useReportCard } from '../hooks/useReportCard';
+import { useAiReportComment } from '../hooks/useAiReportComment';
 import { usePolling } from '../hooks/usePolling';
 import { FORMS, STREAMS, TERMS } from '../lib/constants';
 import ReportCardView from '../components/report/ReportCardView';
@@ -12,6 +13,7 @@ export default function ReportCard() {
   const { teacher, isClassTeacher } = useTeacher();
   const toast = useToast();
   const { fetchReportCard, loading } = useReportCard();
+  const { generate, fetchSaved, loading: aiLoading } = useAiReportComment();
 
   const [form, setForm] = useState('');
   const [stream, setStream] = useState('');
@@ -19,6 +21,7 @@ export default function ReportCard() {
   const [students, setStudents] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [report, setReport] = useState(null);
+  const [aiComment, setAiComment] = useState('');
 
   useEffect(() => {
     if (isClassTeacher && teacher?.class_form) {
@@ -44,23 +47,63 @@ export default function ReportCard() {
     return () => { alive = false; };
   }, [form, stream]);
 
-  // Auto-load report when student or term changes
+  // Auto-load report + saved AI comment
   useEffect(() => {
-    if (!selectedId) { setReport(null); return; }
+    if (!selectedId) {
+      setReport(null);
+      setAiComment('');
+      return;
+    }
     let alive = true;
     (async () => {
       const r = await fetchReportCard({ studentId: Number(selectedId), term });
       if (alive) setReport(r);
+      const saved = await fetchSaved({ studentId: Number(selectedId), term });
+      if (alive) setAiComment(saved || '');
     })();
     return () => { alive = false; };
-  }, [selectedId, term, fetchReportCard]);
+  }, [selectedId, term, fetchReportCard, fetchSaved]);
 
-  // Silent poll every 20s to pick up new marks
   usePolling(async () => {
     if (!selectedId) return;
     const r = await fetchReportCard({ studentId: Number(selectedId), term });
     if (r) setReport(r);
   }, 20000, !!selectedId);
+
+  async function handleAiComment() {
+    if (!report) {
+      toast.error('Load a report first.');
+      return;
+    }
+    // Fetch attendance for this student
+    let attendance = null;
+    try {
+      const { data } = await supabase
+        .from('attendance')
+        .select('status')
+        .eq('student_id', report.student.id);
+      const rows = data || [];
+      const present = rows.filter(r => r.status === 'present').length;
+      const percent = rows.length ? Math.round((present / rows.length) * 100) : null;
+      attendance = { percent };
+    } catch (e) { /* ignore */ }
+
+    const text = await generate({
+      student: report.student,
+      term,
+      subjects: report.subjects,
+      overallAverage: report.overallAverage,
+      overallLevel: report.overallLevel,
+      attendance,
+    });
+
+    if (text) {
+      setAiComment(text);
+      toast.success('AI comment generated.', 'Done');
+    } else {
+      toast.error('Could not generate comment.');
+    }
+  }
 
   return (
     <div className="p-6 max-w-4xl">
@@ -100,7 +143,7 @@ export default function ReportCard() {
           </Field>
         </div>
 
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end gap-2">
           <button
             onClick={() => window.print()}
             disabled={!report}
@@ -108,7 +151,31 @@ export default function ReportCard() {
           >
             Print
           </button>
+          <button
+            onClick={handleAiComment}
+            disabled={!report || aiLoading}
+            className="text-xs text-blue-300 hover:text-white px-4 py-2 rounded-md border border-blue-900/60 hover:bg-blue-900/40 transition flex items-center gap-2 disabled:opacity-50"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5zM4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2" />
+            </svg>
+            {aiLoading ? 'Generating…' : aiComment ? 'Regenerate AI Comment' : 'Generate AI Comment'}
+          </button>
         </div>
+
+        {aiComment && (
+          <div className="mt-3 bg-[#0a1628] border border-blue-900/40 rounded-md p-3">
+            <p className="text-[10px] uppercase tracking-wider text-blue-500 mb-1">
+              Overall Teacher Comment (AI)
+            </p>
+            <textarea
+              value={aiComment}
+              onChange={e => setAiComment(e.target.value)}
+              rows={3}
+              className="w-full bg-transparent text-sm text-blue-100 focus:outline-none resize-none"
+            />
+          </div>
+        )}
       </div>
 
       {loading && !report && (
@@ -125,7 +192,7 @@ export default function ReportCard() {
         </div>
       )}
 
-      <ReportCardPrint report={report} teacher={teacher} />
+      <ReportCardPrint report={report} teacher={teacher} aiComment={aiComment} />
     </div>
   );
 }

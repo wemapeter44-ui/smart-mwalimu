@@ -7,13 +7,12 @@ const LEVEL_LABEL = {
   BE: 'Below',
 };
 
-export default function ReportCardView({ report }) {
+export default function ReportCardView({ report, aiComment }) {
   if (!report) return null;
   const { student, subjects, levelCounts, overallAverage, overallLevel, assessmentsCount } = report;
 
   return (
     <div className="space-y-4">
-      {/* Student header */}
       <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg p-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
@@ -31,7 +30,6 @@ export default function ReportCardView({ report }) {
         </div>
       </div>
 
-      {/* Level distribution */}
       <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg p-4">
         <p className="text-[11px] font-semibold text-blue-300 uppercase tracking-wider mb-3">
           Competency distribution ({assessmentsCount} assessments)
@@ -52,7 +50,15 @@ export default function ReportCardView({ report }) {
         </div>
       </div>
 
-      {/* Subjects */}
+      {aiComment && (
+        <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg p-4">
+          <p className="text-[11px] font-semibold text-blue-300 uppercase tracking-wider mb-2">
+            Overall Teacher Comment
+          </p>
+          <p className="text-sm text-blue-100 leading-relaxed">{aiComment}</p>
+        </div>
+      )}
+
       <div className="bg-[#0d1e35] border border-blue-900/40 rounded-lg overflow-hidden">
         <div className="px-4 py-2.5 border-b border-blue-900/40">
           <p className="text-[11px] font-semibold text-blue-300 uppercase tracking-wider">
@@ -78,8 +84,7 @@ export default function ReportCardView({ report }) {
                     <div key={i} className="flex items-center justify-between text-xs gap-2">
                       <div className="min-w-0">
                         <span className="text-blue-200">
-                          {a.exam_name || 'Assessment'}
-                          {a.assessment_type && <span className="text-blue-500 ml-1">· {a.assessment_type}</span>}
+                          {a.exam_name || a.assessment_type || 'Assessment'}
                         </span>
                         {(a.strand || a.sub_strand) && (
                           <p className="text-[10px] text-blue-500">
